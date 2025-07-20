@@ -1,0 +1,282 @@
+# PersonalScrum - AI Destekli Kişisel Scrum Uygulaması
+
+## Proje Hakkında
+
+PersonalScrum, bireylerin kişisel hedeflerini Agile/Scrum metodolojisi ile yönetmelerine yardımcı olan AI destekli mobil uygulamadır. Kullanıcılar hedeflerini girerken AI agent otomatik olarak kapsam dokümanı oluşturur, sprintlere böler ve günlük takip sağlar.
+
+## Ana Özellikler
+
+- 🎯 **AI Destekli Hedef Planlama**: Hedeflerinizi girin, AI otomatik kapsam dokümanı oluştursun
+- 🔄 **Akıllı Sprint Bölümleme**: AI agent hedeflerinizi sprintlere otomatik böler
+- 📱 **Kişiselleştirilebilir Mobil Deneyim**: Her kullanıcı kendi çalışma düzenini ayarlayabilir
+- 🤖 **AI Agent Etkileşimi**: Daily ve sprint toplantılarında AI ile mesajlaşma
+- ⚙️ **Parametrik Yapılandırma**: Sprint süresi, çalışma saatleri, toplantı zamanları
+- 👥 **Çoklu Kullanıcı Desteği**: Güvenli kayıt/giriş sistemi
+- 📊 **İlerleme Takibi**: Real-time progress tracking ve analytics
+- 🏖️ **Tatil/İzin Yönetimi**: Esnek tatil planlama sistemi
+- 📅 **Akıllı Takvim Entegrasyonu**: Otomatik toplantı planlama
+- 📈 **Performans Analytics**: Kişisel verimlilik raporları
+
+## Teknoloji Stack
+
+### Mobile Frontend
+- React Native 0.73+ - Cross-platform mobile development
+- TypeScript 5.0+ - Type safety
+- React Navigation 6+ - Navigation system
+- React Native Reanimated 3+ - Smooth animations
+- React Native Paper - Material Design components
+- Async Storage - Local data persistence
+
+### Backend & AI
+- Node.js 20+ - Server runtime
+- Express.js 4+ - Web framework
+- TypeScript 5.0+ - Type safety
+- OpenAI GPT-4 API - AI agent functionality
+- Socket.io - Real-time messaging
+- JWT - Authentication
+
+### Database & Storage
+- PostgreSQL 15+ - Primary database
+- Redis 7+ - Caching and sessions
+- AWS S3 - File storage
+- Prisma ORM - Database management
+
+### DevOps & Infrastructure
+- Docker - Containerization
+- AWS ECS - Container orchestration
+- AWS RDS - Managed database
+- GitHub Actions - CI/CD
+- Sentry - Error monitoring
+- DataDog - Application monitoring
+
+## Kurulum
+
+### Gereksinimler
+
+- Node.js (v20.0.0 veya üzeri)
+- React Native CLI veya Expo CLI
+- Android Studio (Android development için)
+- Xcode (iOS development için)
+- PostgreSQL 15+
+- Redis 7+
+- OpenAI API Key
+
+### Adım Adım Kurulum
+
+1. **Projeyi klonlayın**
+   ```bash
+   git clone https://github.com/kullanici-adi/personal-scrum.git
+   cd personal-scrum
+   ```
+
+2. **Backend kurulumu**
+   ```bash
+   cd backend
+   npm install
+   
+   # Environment variables
+   cp .env.example .env
+   # .env dosyasını OpenAI API key ve DB bilgileri ile düzenleyin
+   
+   # Database setup
+   npm run db:migrate
+   npm run db:seed
+   
+   # Start backend
+   npm run dev
+   ```
+
+3. **Mobile app kurulumu**
+   ```bash
+   cd mobile
+   npm install
+   
+   # iOS (Mac gerekli)
+   cd ios && pod install && cd ..
+   npx react-native run-ios
+   
+   # Android
+   npx react-native run-android
+   ```
+
+4. **Environment Variables (.env)**
+   ```bash
+   # Database
+   DATABASE_URL=postgresql://user:password@localhost:5432/personalscrum
+   REDIS_URL=redis://localhost:6379
+   
+   # AI
+   OPENAI_API_KEY=sk-...
+   OPENAI_MODEL=gpt-4
+   
+   # Auth
+   JWT_SECRET=your-super-secret-key
+   JWT_EXPIRES_IN=7d
+   
+   # App Config
+   NODE_ENV=development
+   PORT=3000
+   ```
+
+## Kullanım
+
+### Temel Akış
+
+1. **Kayıt/Giriş**: Uygulamaya kayıt olun veya giriş yapın
+2. **Profil Kurulumu**: Çalışma saatlerinizi, sprint sürelerinizi ayarlayın
+3. **Hedef Belirleme**: Ulaşmak istediğiniz hedefleri detaylı şekilde girin
+4. **AI Kapsam Oluşturma**: AI agent otomatik olarak kapsam dokümanı oluşturur
+5. **Sprint Planlama**: AI tarafından önerilen sprint planını gözden geçirin ve düzenleyin
+6. **Daily Takip**: Her gün AI agent ile sohbet ederek ilerlemenizi paylaşın
+7. **Sprint Review**: Sprint sonunda AI ile retrospektif yapın
+
+### API Kullanımı
+
+```javascript
+// AI ile sohbet
+const chatWithAI = async (message, sprintId) => {
+  const response = await fetch('/api/v1/ai/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      message,
+      sprintId,
+      context: 'daily_standup'
+    })
+  });
+  return response.json();
+};
+
+// Hedef oluşturma ve AI kapsam dökümanı
+const createGoalWithAI = async (goalData) => {
+  const response = await fetch('/api/v1/goals', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(goalData)
+  });
+  return response.json(); // AI generated scope ve sprint plan dahil
+};
+```
+
+## Proje Yapısı
+
+```
+personal-scrum/
+├── mobile/                     # React Native uygulaması
+│   ├── src/
+│   │   ├── components/         # UI bileşenleri
+│   │   │   ├── common/         # Ortak bileşenler
+│   │   │   ├── scrum/          # Scrum özel bileşenleri
+│   │   │   └── ai/             # AI chat bileşenleri
+│   │   ├── screens/            # Ekran bileşenleri
+│   │   │   ├── auth/           # Kimlik doğrulama
+│   │   │   ├── onboarding/     # İlk kurulum
+│   │   │   ├── dashboard/      # Ana dashboard
+│   │   │   ├── goals/          # Hedef yönetimi
+│   │   │   ├── sprints/        # Sprint yönetimi
+│   │   │   ├── daily/          # Daily standup
+│   │   │   └── settings/       # Ayarlar
+│   │   ├── navigation/         # Navigation yapısı
+│   │   ├── services/           # API servisleri
+│   │   ├── store/              # State management (Redux Toolkit)
+│   │   ├── utils/              # Yardımcı fonksiyonlar
+│   │   ├── hooks/              # Custom hooks
+│   │   └── types/              # TypeScript tip tanımları
+│   ├── android/                # Android native kod
+│   ├── ios/                    # iOS native kod
+│   └── package.json
+├── backend/                    # Node.js backend
+│   ├── src/
+│   │   ├── controllers/        # API controllers
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── goals.controller.ts
+│   │   │   ├── sprints.controller.ts
+│   │   │   ├── ai.controller.ts
+│   │   │   └── users.controller.ts
+│   │   ├── services/           # Business logic
+│   │   │   ├── ai.service.ts   # OpenAI entegrasyonu
+│   │   │   ├── scrum.service.ts
+│   │   │   └── notification.service.ts
+│   │   ├── models/             # Database models (Prisma)
+│   │   ├── middleware/         # Express middleware
+│   │   ├── routes/             # API routes
+│   │   ├── utils/              # Yardımcı fonksiyonlar
+│   │   └── types/              # TypeScript types
+│   ├── prisma/                 # Database schema ve migrations
+│   └── package.json
+├── shared/                     # Paylaşılan tipler ve utilities
+│   ├── types/                  # Common TypeScript types
+│   └── constants/              # Shared constants
+├── docs/                       # Dokümantasyon
+│   ├── api/                    # API dokümantasyonu
+│   ├── architecture/           # Sistem mimarisi
+│   └── user-guide/             # Kullanıcı rehberi
+├── .github/                    # GitHub Actions workflows
+├── docker-compose.yml          # Development environment
+└── README.md
+```
+
+## Katkıda Bulunma
+
+Katkılarınızı memnuniyetle karşılıyoruz! Lütfen [CONTRIBUTING.md](./CONTRIBUTING.md) dosyasını okuyun.
+
+### Geliştirme Süreci
+
+1. Fork yapın
+2. Feature branch oluşturun (`git checkout -b feature/AmazingFeature`)
+3. Değişikliklerinizi commit edin (`git commit -m 'Add some AmazingFeature'`)
+4. Branch'inizi push edin (`git push origin feature/AmazingFeature`)
+5. Pull Request açın
+
+## Test
+
+```bash
+# Tüm testleri çalıştır
+npm test
+
+# Test coverage raporu
+npm run test:coverage
+
+# E2E testler
+npm run test:e2e
+```
+
+## Deployment
+
+### Production Build
+
+```bash
+npm run build
+```
+
+### Docker ile Deployment
+
+```bash
+docker build -t proje-adi .
+docker run -p 3000:3000 proje-adi
+```
+
+## Lisans
+
+Bu proje [MIT Lisansı](./LICENSE) altında lisanslanmıştır.
+
+## İletişim
+
+- **Proje Yöneticisi**: [İsim](mailto:email@example.com)
+- **GitHub**: [https://github.com/kullanici-adi/proje-adi](https://github.com/kullanici-adi/proje-adi)
+- **İssues**: [https://github.com/kullanici-adi/proje-adi/issues](https://github.com/kullanici-adi/proje-adi/issues)
+
+## Değişiklik Geçmişi
+
+Tüm önemli değişiklikler [CHANGELOG.md](./CHANGELOG.md) dosyasında dokumentlanmıştır.
+
+## Teşekkürler
+
+- [Katkıda bulunan kişi/kurum adları]
+- [Kullanılan açık kaynak projelere teşekkür]

@@ -1,0 +1,918 @@
+# PersonalScrum - Database Schema ve API Design
+
+## Database Schema (PostgreSQL + Prisma)
+
+### Core Tables
+
+#### Users Table
+```sql
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  avatar_url TEXT,
+  timezone VARCHAR(50) DEFAULT 'UTC',
+  language VARCHAR(10) DEFAULT 'tr',
+  is_active BOOLEAN DEFAULT true,
+  email_verified BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_login_at TIMESTAMP,
+  deleted_at TIMESTAMP NULL
+);
+
+-- Indexes
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_active ON users(is_active) WHERE is_active = true;
+```
+
+#### User Configurations Table
+```sql
+CREATE TABLE user_configurations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  
+  -- Sprint Configuration
+  default_sprint_duration INTEGER DEFAULT 14, -- days
+  sprint_start_day INTEGER DEFAULT 1, -- 1=Monday, 7=Sunday
+  demo_time TIME DEFAULT '17:00:00',
+  retrospective_time TIME DEFAULT '16:00:00',
+  daily_standup_time TIME DEFAULT '09:00:00',
+  
+  -- Working Hours Configuration
+  working_hours JSONB DEFAULT '{}', -- {"monday": {"start": "09:00", "end": "17:00", "isWorking": true}}
+  core_hours_start TIME DEFAULT '10:00:00',
+  core_hours_end TIME DEFAULT '16:00:00',
+  
+  -- Leave Management
+  advance_notice_days INTEGER DEFAULT 7,
+  max_consecutive_leave_days INTEGER DEFAULT 30,
+  yearly_leave_quota INTEGER DEFAULT 25,
+  
+  -- AI Preferences
+  ai_personality VARCHAR(20) DEFAULT 'supportive', -- supportive, motivational, analytical
+  ai_interaction_frequency VARCHAR(20) DEFAULT 'normal', -- low, normal, high
+  enable_ai_suggestions BOOLEAN DEFAULT true,
+  enable_mood_tracking BOOLEAN DEFAULT true,
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX idx_user_configurations_user_id ON user_configurations(user_id);
+```
+
+#### Goals Table
+```sql
+CREATE TABLE goals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  estimated_duration INTEGER, -- weeks
+  user_experience_level VARCHAR(20) NOT NULL, -- beginner, intermediate, advanced
+  category VARCHAR(50), -- career, health, education, personal
+  priority VARCHAR(10) DEFAULT 'medium', -- low, medium, high
+  status VARCHAR(20) DEFAULT 'planning', -- planning, active, completed, paused, cancelled
+  
+  -- AI Generated Content
+  ai_scope_document JSONB, -- AI generated scope document
+  ai_confidence_score DECIMAL(3,2), -- 0.00 to 1.00
+  ai_generated_at TIMESTAMP,
+  
+  -- Progress Tracking
+  completion_percentage DECIMAL(5,2) DEFAULT 0.00,
+  started_at TIMESTAMP,
+  completed_at TIMESTAMP,
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP NULL
+);
+
+-- Indexes
+CREATE INDEX idx_goals_user_id ON goals(user_id);
+CREATE INDEX idx_goals_status ON goals(status);
+CREATE INDEX idx_goals_category ON goals(category);
+CREATE INDEX idx_goals_priority ON goals(priority);
+```
+
+#### Sprints Table
+```sql
+CREATE TABLE sprints (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  goal_id UUID NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  
+  sprint_number INTEGER NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  sprint_goal TEXT NOT NULL,
+  
+  -- Sprint Timeline
+  planned_start_date DATE NOT NULL,
+  planned_end_date DATE NOT NULL,
+  actual_start_date DATE,
+  actual_end_date DATE,
+  
+  -- Sprint Metrics
+  estimated_hours DECIMAL(5,2) NOT NULL,
+  actual_hours DECIMAL(5,2) DEFAULT 0.00,
+  completed_tasks INTEGER DEFAULT 0,
+  total_tasks INTEGER DEFAULT 0,
+  
+  status VARCHAR(20) DEFAULT 'planned', -- planned, active, completed, cancelled
+  
+  -- AI Insights
+  ai_generated_plan JSONB, -- AI generated sprint plan
+  ai_performance_insights JSONB, -- AI analysis of sprint performance
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes
+CREATE INDEX idx_sprints_goal_id ON sprints(goal_id);
+CREATE INDEX idx_sprints_user_id ON sprints(user_id);
+CREATE INDEX idx_sprints_status ON sprints(status);
+CREATE UNIQUE INDEX idx_sprints_goal_number ON sprints(goal_id, sprint_number);
+```
+
+#### Tasks Table
+```sql
+CREATE TABLE tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sprint_id UUID NOT NULL REFERENCES sprints(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  estimated_hours DECIMAL(4,2) NOT NULL,
+  actual_hours DECIMAL(4,2) DEFAULT 0.00,
+  
+  priority VARCHAR(10) DEFAULT 'medium', -- low, medium, high
+  status VARCHAR(20) DEFAULT 'todo', -- todo, in_progress, review, done
+  task_type VARCHAR(20) DEFAULT 'development', -- development, research, testing, documentation
+  
+  -- Dependencies
+  depends_on UUID[] DEFAULT '{}', -- Array of task IDs this task depends on
+  blocks UUID[] DEFAULT '{}', -- Array of task IDs this task blocks
+  
+  -- Progress Tracking
+  completion_percentage DECIMAL(5,2) DEFAULT 0.00,
+  started_at TIMESTAMP,
+  completed_at TIMESTAMP,
+  
+  -- AI Insights
+  ai_generated BOOLEAN DEFAULT false,
+  ai_difficulty_score DECIMAL(3,2), -- AI estimated difficulty 0.00 to 1.00
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes
+CREATE INDEX idx_tasks_sprint_id ON tasks(sprint_id);
+CREATE INDEX idx_tasks_user_id ON tasks(user_id);
+CREATE INDEX idx_tasks_status ON tasks(status);
+CREATE INDEX idx_tasks_priority ON tasks(priority);
+```
+
+#### AI Conversations Table
+```sql
+CREATE TABLE ai_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sprint_id UUID REFERENCES sprints(id) ON DELETE CASCADE,
+  
+  conversation_type VARCHAR(20) NOT NULL, -- daily_standup, retrospective, general, planning
+  context_data JSONB, -- Additional context for the conversation
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_ai_conversations_user_id ON ai_conversations(user_id);
+CREATE INDEX idx_ai_conversations_sprint_id ON ai_conversations(sprint_id);
+CREATE INDEX idx_ai_conversations_type ON ai_conversations(conversation_type);
+```
+
+#### AI Messages Table
+```sql
+CREATE TABLE ai_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
+  
+  sender VARCHAR(10) NOT NULL, -- user, ai
+  message_text TEXT NOT NULL,
+  message_type VARCHAR(20) DEFAULT 'text', -- text, suggestion, insight, question
+  
+  -- AI Metadata
+  ai_model VARCHAR(50), -- gpt-4, gpt-3.5-turbo
+  ai_prompt_tokens INTEGER,
+  ai_completion_tokens INTEGER,
+  ai_confidence_score DECIMAL(3,2),
+  
+  -- Message Analysis
+  sentiment_score DECIMAL(3,2), -- -1.00 to 1.00 (negative to positive)
+  contains_action_items BOOLEAN DEFAULT false,
+  action_items JSONB, -- Extracted action items
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_ai_messages_conversation_id ON ai_messages(conversation_id);
+CREATE INDEX idx_ai_messages_sender ON ai_messages(sender);
+CREATE INDEX idx_ai_messages_created_at ON ai_messages(created_at);
+```
+
+#### Daily Standups Table
+```sql
+CREATE TABLE daily_standups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sprint_id UUID NOT NULL REFERENCES sprints(id) ON DELETE CASCADE,
+  conversation_id UUID REFERENCES ai_conversations(id),
+  
+  standup_date DATE NOT NULL,
+  
+  -- Standup Responses
+  what_did_yesterday JSONB, -- Array of completed tasks/activities
+  what_will_do_today JSONB, -- Array of planned tasks/activities
+  blockers JSONB, -- Array of impediments/blockers
+  
+  -- Mood and Energy Tracking
+  mood_score INTEGER CHECK (mood_score >= 1 AND mood_score <= 10),
+  energy_level INTEGER CHECK (energy_level >= 1 AND energy_level <= 10),
+  focus_level INTEGER CHECK (focus_level >= 1 AND focus_level <= 10),
+  
+  -- AI Analysis
+  ai_feedback TEXT,
+  ai_suggestions JSONB,
+  productivity_score DECIMAL(3,2), -- AI calculated productivity score
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX idx_daily_standups_user_sprint_date ON daily_standups(user_id, sprint_id, standup_date);
+CREATE INDEX idx_daily_standups_date ON daily_standups(standup_date);
+```
+
+#### Leave Requests Table
+```sql
+CREATE TABLE leave_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  
+  leave_type VARCHAR(20) NOT NULL, -- vacation, sick, personal, emergency
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  total_days INTEGER NOT NULL,
+  
+  reason TEXT,
+  status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected
+  
+  -- AI Processing
+  ai_processed BOOLEAN DEFAULT false,
+  ai_recommendation VARCHAR(20), -- approve, reject, request_info
+  ai_analysis TEXT, -- AI analysis of the request
+  
+  -- Impact Analysis
+  affected_sprints UUID[],
+  impact_score DECIMAL(3,2), -- AI calculated impact score
+  
+  approved_at TIMESTAMP,
+  approved_by VARCHAR(20) DEFAULT 'ai_agent',
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_leave_requests_user_id ON leave_requests(user_id);
+CREATE INDEX idx_leave_requests_dates ON leave_requests(start_date, end_date);
+CREATE INDEX idx_leave_requests_status ON leave_requests(status);
+```
+
+#### User Analytics Table
+```sql
+CREATE TABLE user_analytics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  
+  analytics_date DATE NOT NULL,
+  analytics_type VARCHAR(20) NOT NULL, -- daily, weekly, monthly, sprint
+  
+  -- Productivity Metrics
+  planned_hours DECIMAL(5,2) DEFAULT 0.00,
+  actual_hours DECIMAL(5,2) DEFAULT 0.00,
+  efficiency_ratio DECIMAL(3,2), -- actual/planned
+  
+  tasks_planned INTEGER DEFAULT 0,
+  tasks_completed INTEGER DEFAULT 0,
+  task_completion_rate DECIMAL(3,2),
+  
+  -- Wellbeing Metrics
+  average_mood DECIMAL(3,2),
+  average_energy DECIMAL(3,2),
+  average_focus DECIMAL(3,2),
+  stress_indicators JSONB,
+  
+  -- AI Insights
+  ai_productivity_insights JSONB,
+  ai_recommendations JSONB,
+  burnout_risk_score DECIMAL(3,2), -- 0.00 to 1.00
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX idx_user_analytics_user_date_type ON user_analytics(user_id, analytics_date, analytics_type);
+CREATE INDEX idx_user_analytics_date ON user_analytics(analytics_date);
+```
+
+## Prisma Schema
+
+```prisma
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String   @unique @db.VarChar(255)
+  passwordHash  String   @map("password_hash") @db.VarChar(255)
+  firstName     String   @map("first_name") @db.VarChar(100)
+  lastName      String   @map("last_name") @db.VarChar(100)
+  avatarUrl     String?  @map("avatar_url")
+  timezone      String   @default("UTC") @db.VarChar(50)
+  language      String   @default("tr") @db.VarChar(10)
+  isActive      Boolean  @default(true) @map("is_active")
+  emailVerified Boolean  @default(false) @map("email_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  lastLoginAt   DateTime? @map("last_login_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  // Relations
+  configuration   UserConfiguration?
+  goals          Goal[]
+  sprints        Sprint[]
+  tasks          Task[]
+  conversations  AiConversation[]
+  dailyStandups  DailyStandup[]
+  leaveRequests  LeaveRequest[]
+  analytics      UserAnalytics[]
+
+  @@map("users")
+}
+
+model UserConfiguration {
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String @unique @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Sprint Configuration
+  defaultSprintDuration Int @default(14) @map("default_sprint_duration")
+  sprintStartDay        Int @default(1) @map("sprint_start_day")
+  demoTime              String @default("17:00:00") @map("demo_time")
+  retrospectiveTime     String @default("16:00:00") @map("retrospective_time")
+  dailyStandupTime      String @default("09:00:00") @map("daily_standup_time")
+
+  // Working Hours (JSON structure)
+  workingHours   Json @default("{}") @map("working_hours")
+  coreHoursStart String @default("10:00:00") @map("core_hours_start")
+  coreHoursEnd   String @default("16:00:00") @map("core_hours_end")
+
+  // Leave Management
+  advanceNoticeDays        Int @default(7) @map("advance_notice_days")
+  maxConsecutiveLeaveDays  Int @default(30) @map("max_consecutive_leave_days")
+  yearlyLeaveQuota         Int @default(25) @map("yearly_leave_quota")
+
+  // AI Preferences
+  aiPersonality            String  @default("supportive") @map("ai_personality") @db.VarChar(20)
+  aiInteractionFrequency   String  @default("normal") @map("ai_interaction_frequency") @db.VarChar(20)
+  enableAiSuggestions      Boolean @default(true) @map("enable_ai_suggestions")
+  enableMoodTracking       Boolean @default(true) @map("enable_mood_tracking")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_configurations")
+}
+
+model Goal {
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title                 String  @db.VarChar(255)
+  description           String
+  estimatedDuration     Int?    @map("estimated_duration")
+  userExperienceLevel   String  @map("user_experience_level") @db.VarChar(20)
+  category              String? @db.VarChar(50)
+  priority              String  @default("medium") @db.VarChar(10)
+  status                String  @default("planning") @db.VarChar(20)
+
+  // AI Generated Content
+  aiScopeDocument     Json?     @map("ai_scope_document")
+  aiConfidenceScore   Decimal?  @map("ai_confidence_score") @db.Decimal(3, 2)
+  aiGeneratedAt       DateTime? @map("ai_generated_at")
+
+  // Progress
+  completionPercentage Decimal?  @default(0.00) @map("completion_percentage") @db.Decimal(5, 2)
+  startedAt           DateTime? @map("started_at")
+  completedAt         DateTime? @map("completed_at")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  sprints Sprint[]
+
+  @@map("goals")
+}
+
+model Sprint {
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  goalId String @map("goal_id") @db.Uuid
+  goal   Goal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sprintNumber Int    @map("sprint_number")
+  title        String @db.VarChar(255)
+  description  String?
+  sprintGoal   String @map("sprint_goal")
+
+  // Timeline
+  plannedStartDate Date      @map("planned_start_date")
+  plannedEndDate   Date      @map("planned_end_date")
+  actualStartDate  DateTime? @map("actual_start_date")
+  actualEndDate    DateTime? @map("actual_end_date")
+
+  // Metrics
+  estimatedHours Decimal @map("estimated_hours") @db.Decimal(5, 2)
+  actualHours    Decimal @default(0.00) @map("actual_hours") @db.Decimal(5, 2)
+  completedTasks Int     @default(0) @map("completed_tasks")
+  totalTasks     Int     @default(0) @map("total_tasks")
+
+  status String @default("planned") @db.VarChar(20)
+
+  // AI Content
+  aiGeneratedPlan        Json? @map("ai_generated_plan")
+  aiPerformanceInsights  Json? @map("ai_performance_insights")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tasks         Task[]
+  conversations AiConversation[]
+  dailyStandups DailyStandup[]
+
+  @@unique([goalId, sprintNumber])
+  @@map("sprints")
+}
+```
+
+## API Design
+
+### RESTful API Endpoints
+
+#### Authentication Endpoints
+```typescript
+// POST /api/v1/auth/register
+interface RegisterRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  timezone?: string;
+  language?: string;
+}
+
+interface RegisterResponse {
+  success: boolean;
+  data: {
+    user: UserProfile;
+    token: string;
+    refreshToken: string;
+  };
+  message: string;
+}
+
+// POST /api/v1/auth/login
+interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+interface LoginResponse {
+  success: boolean;
+  data: {
+    user: UserProfile;
+    token: string;
+    refreshToken: string;
+    expiresIn: number;
+  };
+  message: string;
+}
+
+// POST /api/v1/auth/refresh
+interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+// POST /api/v1/auth/logout
+// DELETE /api/v1/auth/account (Account deletion)
+```
+
+#### User Management Endpoints
+```typescript
+// GET /api/v1/users/profile
+interface UserProfileResponse {
+  success: boolean;
+  data: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
+    timezone: string;
+    language: string;
+    configuration: UserConfiguration;
+    stats: {
+      totalGoals: number;
+      activeGoals: number;
+      completedGoals: number;
+      totalSprints: number;
+      activeSprints: number;
+    };
+  };
+}
+
+// PUT /api/v1/users/profile
+interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
+  timezone?: string;
+  language?: string;
+  avatarUrl?: string;
+}
+
+// PUT /api/v1/users/configuration
+interface UpdateConfigurationRequest {
+  defaultSprintDuration?: number;
+  workingHours?: WorkingHoursConfig;
+  aiPreferences?: AIPreferences;
+  leaveSettings?: LeaveSettings;
+}
+
+// POST /api/v1/users/avatar
+// Multipart form data for avatar upload
+```
+
+#### Goals Management Endpoints
+```typescript
+// POST /api/v1/goals
+interface CreateGoalRequest {
+  title: string;
+  description: string;
+  estimatedDuration?: number;
+  userExperienceLevel: 'beginner' | 'intermediate' | 'advanced';
+  category?: string;
+  priority?: 'low' | 'medium' | 'high';
+}
+
+interface CreateGoalResponse {
+  success: boolean;
+  data: {
+    goal: Goal;
+    aiScopeDocument: ScopeDocument;
+    suggestedSprints: SprintPlan[];
+  };
+  message: string;
+}
+
+// GET /api/v1/goals
+interface GetGoalsQuery {
+  status?: 'planning' | 'active' | 'completed' | 'paused';
+  category?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: 'createdAt' | 'priority' | 'title';
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface GetGoalsResponse {
+  success: boolean;
+  data: {
+    goals: Goal[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
+
+// GET /api/v1/goals/:goalId
+// PUT /api/v1/goals/:goalId
+// DELETE /api/v1/goals/:goalId
+
+// POST /api/v1/goals/:goalId/regenerate-scope
+interface RegenerateScopeRequest {
+  additionalContext?: string;
+  focusAreas?: string[];
+}
+```
+
+#### Sprint Management Endpoints
+```typescript
+// POST /api/v1/sprints
+interface CreateSprintRequest {
+  goalId: string;
+  title?: string; // If not provided, AI will generate
+  description?: string;
+  plannedStartDate: string; // ISO date
+  duration?: number; // days, defaults to user config
+  customTasks?: TaskInput[]; // User can add custom tasks
+}
+
+interface CreateSprintResponse {
+  success: boolean;
+  data: {
+    sprint: Sprint;
+    aiGeneratedTasks: Task[];
+    estimatedWorkload: number;
+    recommendations: string[];
+  };
+}
+
+// GET /api/v1/sprints
+interface GetSprintsQuery {
+  goalId?: string;
+  status?: 'planned' | 'active' | 'completed';
+  page?: number;
+  limit?: number;
+}
+
+// GET /api/v1/sprints/:sprintId
+// PUT /api/v1/sprints/:sprintId
+// DELETE /api/v1/sprints/:sprintId
+
+// POST /api/v1/sprints/:sprintId/start
+// POST /api/v1/sprints/:sprintId/complete
+// POST /api/v1/sprints/:sprintId/regenerate-plan
+
+// GET /api/v1/sprints/:sprintId/analytics
+interface SprintAnalyticsResponse {
+  success: boolean;
+  data: {
+    burndownChart: ChartData;
+    velocityChart: ChartData;
+    taskDistribution: TaskDistribution;
+    timeSpent: TimeDistribution;
+    aiInsights: AIInsight[];
+  };
+}
+```
+
+#### Task Management Endpoints
+```typescript
+// POST /api/v1/tasks
+interface CreateTaskRequest {
+  sprintId: string;
+  title: string;
+  description?: string;
+  estimatedHours: number;
+  priority?: 'low' | 'medium' | 'high';
+  taskType?: 'development' | 'research' | 'testing' | 'documentation';
+  dependsOn?: string[]; // Task IDs
+}
+
+// GET /api/v1/tasks
+interface GetTasksQuery {
+  sprintId?: string;
+  status?: 'todo' | 'in_progress' | 'review' | 'done';
+  assignedToMe?: boolean;
+  priority?: 'low' | 'medium' | 'high';
+}
+
+// PUT /api/v1/tasks/:taskId
+interface UpdateTaskRequest {
+  title?: string;
+  description?: string;
+  status?: 'todo' | 'in_progress' | 'review' | 'done';
+  actualHours?: number;
+  completionPercentage?: number;
+  notes?: string;
+}
+
+// POST /api/v1/tasks/:taskId/time-tracking
+interface TimeTrackingRequest {
+  action: 'start' | 'stop' | 'pause';
+  timestamp: string; // ISO datetime
+  note?: string;
+}
+
+// GET /api/v1/tasks/:taskId/time-logs
+```
+
+#### AI Integration Endpoints
+```typescript
+// POST /api/v1/ai/generate-scope
+interface GenerateScopeRequest {
+  goalTitle: string;
+  goalDescription: string;
+  userExperience: string;
+  additionalContext?: string;
+}
+
+interface GenerateScopeResponse {
+  success: boolean;
+  data: {
+    scopeDocument: ScopeDocument;
+    confidenceScore: number;
+    suggestions: string[];
+    estimatedComplexity: 'low' | 'medium' | 'high';
+  };
+}
+
+// POST /api/v1/ai/generate-sprint-plan
+interface GenerateSprintPlanRequest {
+  goalId: string;
+  scopeDocument: ScopeDocument;
+  userConfiguration: UserConfiguration;
+  constraints?: PlanningConstraints;
+}
+
+// POST /api/v1/ai/chat
+interface AIChatRequest {
+  message: string;
+  conversationType: 'daily_standup' | 'retrospective' | 'general' | 'planning';
+  sprintId?: string;
+  context?: ChatContext;
+}
+
+interface AIChatResponse {
+  success: boolean;
+  data: {
+    response: string;
+    suggestions: AIsuggestion[];
+    actionItems: ActionItem[];
+    mood: 'positive' | 'neutral' | 'concerned';
+    conversationId: string;
+  };
+}
+
+// GET /api/v1/ai/conversations/:conversationId/messages
+// POST /api/v1/ai/analyze-productivity
+// POST /api/v1/ai/generate-recommendations
+```
+
+#### Daily Standup Endpoints
+```typescript
+// POST /api/v1/daily-standups
+interface CreateDailyStandupRequest {
+  sprintId: string;
+  whatDidYesterday: string[];
+  whatWillDoToday: string[];
+  blockers: string[];
+  moodScore: number; // 1-10
+  energyLevel: number; // 1-10
+  focusLevel: number; // 1-10
+  additionalNotes?: string;
+}
+
+interface CreateDailyStandupResponse {
+  success: boolean;
+  data: {
+    standup: DailyStandup;
+    aiFeedback: string;
+    suggestions: AIsuggestion[];
+    productivityInsights: ProductivityInsight[];
+  };
+}
+
+// GET /api/v1/daily-standups
+interface GetDailyStandupsQuery {
+  sprintId?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}
+
+// GET /api/v1/daily-standups/analytics
+interface DailyStandupAnalyticsResponse {
+  success: boolean;
+  data: {
+    moodTrend: TrendData;
+    energyTrend: TrendData;
+    productivityTrend: TrendData;
+    blockerAnalysis: BlockerAnalysis;
+    aiInsights: AIInsight[];
+  };
+}
+```
+
+#### Analytics Endpoints
+```typescript
+// GET /api/v1/analytics/dashboard
+interface DashboardAnalyticsResponse {
+  success: boolean;
+  data: {
+    overview: {
+      totalGoals: number;
+      activeGoals: number;
+      completedGoals: number;
+      totalSprints: number;
+      activeSprints: number;
+      completionRate: number;
+    };
+    productivity: {
+      weeklyHours: ChartData;
+      taskCompletion: ChartData;
+      burnoutRisk: number;
+    };
+    wellbeing: {
+      moodTrend: ChartData;
+      energyLevels: ChartData;
+      stressIndicators: StressIndicator[];
+    };
+    aiInsights: AIInsight[];
+  };
+}
+
+// GET /api/v1/analytics/goals/:goalId
+// GET /api/v1/analytics/sprints/:sprintId
+// GET /api/v1/analytics/productivity
+// GET /api/v1/analytics/wellbeing
+// GET /api/v1/analytics/ai-performance
+```
+
+### WebSocket Events
+
+#### Real-time AI Chat
+```typescript
+// Client -> Server Events
+interface WebSocketClientEvents {
+  'join_conversation': {
+    conversationId: string;
+    userId: string;
+  };
+  
+  'send_message': {
+    conversationId: string;
+    message: string;
+    messageType: 'text' | 'voice';
+  };
+  
+  'typing_start': {
+    conversationId: string;
+  };
+  
+  'typing_stop': {
+    conversationId: string;
+  };
+}
+
+// Server -> Client Events
+interface WebSocketServerEvents {
+  'ai_message': {
+    conversationId: string;
+    message: AIChatMessage;
+    suggestions?: AIsuggestion[];
+    actionItems?: ActionItem[];
+  };
+  
+  'ai_typing': {
+    conversationId: string;
+    isTyping: boolean;
+  };
+  
+  'conversation_updated': {
+    conversationId: string;
+    summary: ConversationSummary;
+  };
+  
+  'productivity_alert': {
+    type: 'burnout_warning' | 'low_productivity' | 'goal_behind';
+    message: string;
+    severity: 'low' | 'medium' | 'high';
+    actionItems: ActionItem[];
+  };
+}
+```
+
+Bu kapsamlı database schema ve API design PersonalScrum uygulamasının tüm gereksinimlerini karşılar ve ölçeklenebilir bir yapı sağlar. Her endpoint type-safe olacak şekilde tasarlanmış ve modern API best practice'lerini takip eder.

@@ -1,0 +1,1072 @@
+# PersonalScrum - Proje Kuralları ve Standartları
+
+Bu dokümanda PersonalScrum AI destekli kişisel Scrum uygulaması geliştirme sürecinde uyulması gereken tüm kurallar ve standartlar yer almaktadır.
+
+## Genel Kurallar
+
+### Proje Yönetimi
+
+- **Agile/Scrum** metodolojisi kullanılır (uygulama içi Scrum sisteminin kendisi için de geçerli)
+- Sprint süresi **parametrik**tir (default: 2 hafta, kullanıcı ayarlayabilir: 1-4 hafta arası)
+- Her sprint sonunda **demo/retrospektif** yapılır (zaman parametrik)
+- Daily standup toplantı saatleri **parametrik**tir (kullanıcı kendi çalışma saatlerine göre ayarlar)
+- Development team için retrospektif toplantıları sprint sonunda yapılır
+
+### Parametrik Yapılandırma Sistemi
+
+#### Sprint Konfigürasyonu
+```typescript
+interface SprintConfig {
+  duration: number; // 1-4 hafta (default: 2)
+  startDay: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
+  demoTime: string; // HH:MM format
+  retroTime: string; // HH:MM format
+  dailyTime: string; // HH:MM format
+  workingDays: DayOfWeek[]; // Kullanıcının çalışma günleri
+}
+```
+
+#### Çalışma Saatleri Konfigürasyonu
+```typescript
+interface WorkingHours {
+  timezone: string; // User's timezone
+  schedule: {
+    [key in DayOfWeek]: {
+      start: string; // HH:MM
+      end: string;   // HH:MM
+      isWorkingDay: boolean;
+    }
+  };
+  coreHours?: {
+    start: string; // Odaklanma saatleri başlangıcı
+    end: string;   // Odaklanma saatleri bitişi
+  };
+}
+```
+
+#### Tatil/İzin Sistemi
+```typescript
+interface LeaveManagement {
+  leaveTypes: LeaveType[]; // Tatil, hastalık, kişisel izin vs.
+  approvalRequired: boolean; // AI agent onayı gerekli mi?
+  advanceNotice: number; // Kaç gün önceden bildirim (parametrik)
+  maxConsecutiveDays: number; // Maksimum ardışık izin günü
+  yearlyQuota: number; // Yıllık izin hakki
+}
+```
+
+### Zaman Yönetimi
+
+- Çalışma saatleri: **Tamamen kullanıcı tanımlı** (07:00-23:00 arası herhangi bir zaman)
+- Core hours: **Opsiyonel** (kullanıcı en verimli olduğu saatleri belirleyebilir)
+- AI agent etkileşimleri kullanıcının aktif saatleri içinde gerçekleşir
+- Tatil ve izin planlamaları **parametrik süre önceden** bildirilir
+
+## AI Agent Integration Kuralları
+
+### AI Agent Sorumlulukları
+
+#### Kapsam Dokümanı Oluşturma
+```typescript
+interface ScopeDocument {
+  goalTitle: string;
+  description: string;
+  acceptanceCriteria: string[];
+  estimatedEffort: string; // AI tahmini
+  prerequisites: string[];
+  risks: string[];
+  definition_of_done: string[];
+  generatedBy: 'ai-agent';
+  createdAt: Date;
+  version: string;
+}
+```
+
+#### Sprint Planlama AI Kuralları
+- AI agent hedefleri **otomatik olarak sprintlere böler**
+- Kullanıcının çalışma saatleri ve kapasitesi dikkate alınır
+- Sprint capacity = (Çalışma günü sayısı × Günlük çalışma saati × Odaklanma faktörü)
+- AI önerileri kullanıcı tarafından **%100 düzenlenebilir**
+
+#### Daily Standup AI Kuralları
+```typescript
+interface DailyStandupAI {
+  questions: [
+    "Dün hangi görevleri tamamladın?",
+    "Bugün ne yapmayı planlıyorsun?", 
+    "Herhangi bir engelin var mı?",
+    "Energy level'ın nasıl? (1-10)",
+    "Sprint hedefinize göre nasıl gidiyoruz?"
+  ];
+  responseAnalysis: boolean; // AI cevapları analiz eder
+  suggestions: boolean; // AI öneriler sunar
+  moodTracking: boolean; // Mood takibi yapar
+}
+```
+
+#### Sprint Review/Retrospektif AI Kuralları
+- AI sprint boyunca toplanan verileri analiz eder
+- Performance insights sağlar
+- Gelecek sprintler için öneriler sunar
+- Burndown chart ve velocity hesaplar
+
+### AI-Human Interaction Standartları
+
+#### Mesajlaşma Kuralları
+```typescript
+interface AIMessage {
+  type: 'daily' | 'sprint_planning' | 'retrospective' | 'general';
+  tone: 'supportive' | 'motivational' | 'analytical' | 'questioning';
+  context: UserContext; // Sprint durumu, geçmiş performans etc.
+  personalizedContent: boolean; // Kullanıcıya özel içerik
+  actionableInsights: boolean; // Eyleme geçirilebilir öneriler
+}
+```
+
+#### AI Response Kalite Standartları
+- Cevaplar **kişiselleştirilmiş** olmalı
+- **Eyleme geçirilebilir** öneriler içermeli  
+- Kullanıcının **motivasyonunu artırıcı** ton kullanmalı
+- **Veri tabanlı** insights sağlamalı
+- Maximum response time: **2 saniye**
+
+### Git Workflow
+
+#### Branch Kuralları
+
+```bash
+# Ana branch'ler
+main/master    # Production kodu
+develop        # Development kodu
+staging        # Staging ortamı
+
+# Feature branch'ler
+feature/TICKET-123-user-authentication
+feature/TICKET-456-payment-integration
+
+# Bug fix branch'ler
+bugfix/TICKET-789-login-error
+hotfix/TICKET-999-critical-security-fix
+
+# Release branch'ler
+release/v1.2.0
+```
+
+#### Commit Kuralları
+
+**Commit Message Formatı:**
+```
+type(scope): subject
+
+body
+
+footer
+```
+
+**Geçerli Tipler:**
+- `feat`: Yeni özellik
+- `fix`: Bug düzeltmesi
+- `docs`: Dokümantasyon
+- `style`: Kod formatı
+- `refactor`: Kod düzenleme
+- `test`: Test
+- `chore`: Diğer
+
+**Örnekler:**
+```bash
+feat(auth): Google OAuth entegrasyonu eklendi
+
+fix(api): kullanıcı giriş hatası düzeltildi
+
+docs(readme): kurulum talimatları güncellendi
+```
+
+#### Pull Request Kuralları
+
+1. **PR Başlığı**: `[TICKET-123] Özellik açıklaması` formatında
+2. **Açıklama**: Yapılan değişikliklerin detaylı açıklaması
+3. **Reviewer**: En az **2 kişi** tarafından review edilmeli
+4. **Tests**: Tüm testler geçmeli
+5. **Conflicts**: Merge conflict'ler çözülmeli
+6. **Size**: PR maximum **500 satır** olmalı (büyük PR'lar parçalanmalı)
+
+### Kod Kalite Standartları
+
+#### JavaScript/TypeScript
+
+```javascript
+// ✅ DOGRU
+const calculateTotalPrice = (items) => {
+  if (!items || !Array.isArray(items)) {
+    throw new Error('Items must be an array');
+  }
+  
+  return items.reduce((total, item) => {
+    if (typeof item.price !== 'number') {
+      throw new Error('Item price must be a number');
+    }
+    return total + item.price;
+  }, 0);
+};
+
+// ❌ YANLIŞ
+function calc(items) {
+  let total = 0;
+  for (var i = 0; i < items.length; i++) {
+    total = total + items[i].price;
+  }
+  return total;
+}
+```
+
+#### Naming Conventions
+
+```javascript
+// Variables ve Functions: camelCase
+const userName = 'john_doe';
+const getUserProfile = () => {};
+
+// Constants: UPPER_SNAKE_CASE
+const API_BASE_URL = 'https://api.example.com';
+const MAX_RETRY_COUNT = 3;
+
+// Classes: PascalCase
+class UserService {}
+class PaymentProcessor {}
+
+// Components: PascalCase
+const UserProfile = () => {};
+const LoginForm = () => {};
+
+// Files: kebab-case
+user-profile.component.js
+payment-service.utils.js
+api-client.config.js
+```
+
+#### Function Kuralları
+
+```javascript
+// ✅ DOGRU: Pure functions tercih edilir
+const addTax = (price, taxRate) => price * (1 + taxRate);
+
+// ✅ DOGRU: Single responsibility
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// ❌ YANLIŞ: Side effects var
+let globalTotal = 0;
+const calculateTotal = (items) => {
+  globalTotal = items.reduce((sum, item) => sum + item.price, 0);
+  return globalTotal;
+};
+```
+
+#### Error Handling
+
+```javascript
+// ✅ DOGRU
+const fetchUserData = async (userId) => {
+  try {
+    const response = await api.get(`/users/${userId}`);
+    return { data: response.data, error: null };
+  } catch (error) {
+    console.error('Failed to fetch user data:', error);
+    return { data: null, error: error.message };
+  }
+};
+
+// ❌ YANLIŞ
+const fetchUserData = async (userId) => {
+  const response = await api.get(`/users/${userId}`);
+  return response.data;
+};
+```
+
+### CSS/SCSS Kuralları
+
+#### BEM Metodolojisi
+
+```scss
+// ✅ DOGRU
+.user-card {
+  padding: 1rem;
+  border-radius: 8px;
+  
+  &__header {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+  }
+  
+  &__title {
+    font-size: 1.25rem;
+    font-weight: bold;
+  }
+  
+  &__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+  }
+  
+  &--featured {
+    border: 2px solid #007bff;
+  }
+  
+  &--compact {
+    padding: 0.5rem;
+  }
+}
+
+// ❌ YANLIŞ
+.userCard {
+  .header {
+    .title {}
+  }
+}
+```
+
+#### Responsive Design
+
+```scss
+// Mobile-first approach
+.component {
+  width: 100%;
+  
+  // Tablet
+  @media (min-width: 768px) {
+    width: 50%;
+  }
+  
+  // Desktop
+  @media (min-width: 1024px) {
+    width: 33.333%;
+  }
+}
+```
+
+## Test Kuralları
+
+### Test Coverage
+
+- **Minimum test coverage**: %80
+- **Critical functions**: %100 coverage
+- **Integration tests**: Ana akışlar için zorunlu
+- **E2E tests**: Critical user journeys için
+
+### Test Yazma Standartları
+
+```javascript
+// ✅ DOGRU
+describe('UserService', () => {
+  describe('createUser', () => {
+    it('should create user with valid data', async () => {
+      // Arrange
+      const userData = {
+        name: 'John Doe',
+        email: 'john@example.com'
+      };
+      
+      // Act
+      const result = await userService.createUser(userData);
+      
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.id).toBeTruthy();
+      expect(result.name).toBe(userData.name);
+    });
+    
+    it('should throw error with invalid email', async () => {
+      // Arrange
+      const userData = {
+        name: 'John Doe',
+        email: 'invalid-email'
+      };
+      
+      // Act & Assert
+      await expect(userService.createUser(userData))
+        .rejects
+        .toThrow('Invalid email format');
+    });
+  });
+});
+```
+
+## Security Kuralları
+
+### Kimlik Doğrulama ve Yetkilendirme
+
+```javascript
+// ✅ DOGRU: JWT token validation
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.sendStatus(401);
+  }
+  
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
+```
+
+### Veri Güvenliği
+
+- **Şifreler** her zaman hash'lenmeli (bcrypt kullan)
+- **Environment variables** ile sensitive data saklanmalı
+- **SQL Injection** koruması için parameterized queries
+- **XSS** koruması için input sanitization
+- **CORS** ayarları dikkatli yapılmalı
+
+```javascript
+// ✅ DOGRU: Password hashing
+const hashPassword = async (password) => {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
+};
+
+// ✅ DOGRU: SQL injection koruması
+const getUserById = async (id) => {
+  const query = 'SELECT * FROM users WHERE id = ?';
+  return await db.query(query, [id]);
+};
+```
+
+## Performance Kuralları
+
+### Frontend Performance
+
+- **Bundle size**: Maximum 1MB (gzipped)
+- **First Contentful Paint**: < 2 saniye
+- **Largest Contentful Paint**: < 4 saniye
+- **Cumulative Layout Shift**: < 0.1
+- **Image optimization**: WebP format kullanımı
+- **Code splitting**: Route bazında
+
+### Backend Performance
+
+- **API Response Time**: < 200ms (95th percentile)
+- **Database Queries**: N+1 problem'ı önlemek
+- **Caching**: Redis ile caching stratejisi
+- **Rate Limiting**: API endpoints için
+
+```javascript
+// ✅ DOGRU: Pagination
+const getUsers = async (page = 1, limit = 20) => {
+  const offset = (page - 1) * limit;
+  const query = `
+    SELECT * FROM users 
+    ORDER BY created_at DESC 
+    LIMIT ? OFFSET ?
+  `;
+  return await db.query(query, [limit, offset]);
+};
+```
+
+## Dokümantasyon Kuralları
+
+### Kod Dokümantasyonu
+
+```javascript
+/**
+ * Kullanıcının toplam alışveriş tutarını hesaplar
+ * @param {string} userId - Kullanıcı ID'si
+ * @param {Date} startDate - Başlangıç tarihi
+ * @param {Date} endDate - Bitiş tarihi
+ * @returns {Promise<number>} Toplam tutar
+ * @throws {Error} Geçersiz tarih aralığı durumunda
+ * 
+ * @example
+ * const total = await calculateUserTotal('user123', startDate, endDate);
+ * console.log(`Toplam: ${total} TL`);
+ */
+const calculateUserTotal = async (userId, startDate, endDate) => {
+  // Implementation
+};
+```
+
+### API Dokümantasyonu
+
+OpenAPI 3.0 standardında Swagger dokümantasyonu zorunludur:
+
+```yaml
+/api/users/{id}:
+  get:
+    summary: Kullanıcı bilgilerini getirir
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      200:
+        description: Başarılı
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      404:
+        description: Kullanıcı bulunamadı
+```
+
+## Deployment Kuralları
+
+### Environment'lar
+
+1. **Development**: Feature development için
+2. **Staging**: Production kopyası, test amaçlı
+3. **Production**: Canlı ortam
+
+### CI/CD Pipeline
+
+```yaml
+# .github/workflows/main.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: Run linting
+        run: npm run lint
+      - name: Check test coverage
+        run: npm run test:coverage
+```
+
+### Release Kuralları
+
+- **Semantic Versioning** (SemVer) kullanılır
+- **Release Notes** her release için zorunlu
+- **Database Migrations** production'da dikkatli yapılır
+- **Rollback Plan** her deployment için hazır olmalı
+
+## Monitoring ve Logging
+
+### Logging Standardı
+
+```javascript
+const logger = require('winston');
+
+// ✅ DOGRU: Structured logging
+logger.info('User created successfully', {
+  userId: user.id,
+  email: user.email,
+  timestamp: new Date().toISOString(),
+  action: 'USER_CREATED'
+});
+
+// ❌ YANLIŞ
+console.log('User created: ' + user.email);
+```
+
+### Error Tracking
+
+- **Sentry** ile error tracking
+- **Critical errors** için Slack notification
+- **Performance monitoring** APM ile
+
+## İhlal Durumları
+
+### Kod Review Red Flags
+
+- Test coverage %80'in altında
+- Console.log statements production kodda
+- Hard-coded credentials
+- Magic numbers
+- Büyük functions (>50 satır)
+- Deep nesting (>3 level)
+
+### Ceza Sistemi
+
+1. **İlk ihlal**: Uyarı ve code review
+2. **İkinci ihlal**: Ek training gereksinimi
+3. **Tekrarlayan ihlaller**: Performance review'a etki
+
+## Tools ve Resources
+
+### Geliştirme Araçları
+
+- **IDE**: VS Code (önerilen extensions listesi)
+- **Linting**: ESLint + Prettier
+- **Type Checking**: TypeScript
+- **Testing**: Jest + React Testing Library
+- **E2E Testing**: Cypress veya Playwright
+- **API Testing**: Postman + Newman
+- **Database**: PostgreSQL + Redis
+- **Containerization**: Docker + Docker Compose
+
+### VS Code Extensions (Zorunlu)
+
+```json
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-jest",
+    "ms-vscode-remote.remote-containers"
+  ]
+}
+```
+
+### Package.json Scripts (Standardı)
+
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:e2e": "cypress run",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write .",
+    "type-check": "tsc --noEmit",
+    "pre-commit": "lint-staged",
+    "prepare": "husky install"
+  }
+}
+```
+
+## Database Kuralları
+
+### Schema Design
+
+```sql
+-- ✅ DOGRU: Naming conventions
+CREATE TABLE user_profiles (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  phone_number VARCHAR(20),
+  date_of_birth DATE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP NULL
+);
+
+-- Index'ler
+CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
+CREATE INDEX idx_user_profiles_email ON user_profiles(email);
+CREATE INDEX idx_user_profiles_created_at ON user_profiles(created_at);
+```
+
+### Migration Kuralları
+
+```javascript
+// ✅ DOGRU: Reversible migration
+exports.up = function(knex) {
+  return knex.schema.createTable('user_profiles', function(table) {
+    table.increments('id').primary();
+    table.integer('user_id').notNullable().references('id').inTable('users');
+    table.string('first_name', 50).notNullable();
+    table.string('last_name', 50).notNullable();
+    table.string('email', 255).notNullable().unique();
+    table.timestamps(true, true);
+    table.timestamp('deleted_at').nullable();
+  });
+};
+
+exports.down = function(knex) {
+  return knex.schema.dropTable('user_profiles');
+};
+```
+
+### Query Optimization
+
+```javascript
+// ✅ DOGRU: Optimized query
+const getUsersWithProfiles = async (page = 1, limit = 20) => {
+  const offset = (page - 1) * limit;
+  
+  return await db.query(`
+    SELECT 
+      u.id,
+      u.username,
+      up.first_name,
+      up.last_name,
+      up.email
+    FROM users u
+    LEFT JOIN user_profiles up ON u.id = up.user_id
+    WHERE u.deleted_at IS NULL
+    ORDER BY u.created_at DESC
+    LIMIT $1 OFFSET $2
+  `, [limit, offset]);
+};
+
+// ❌ YANLIŞ: N+1 problem
+const getUsersWithProfiles = async () => {
+  const users = await db.query('SELECT * FROM users');
+  for (let user of users) {
+    user.profile = await db.query('SELECT * FROM user_profiles WHERE user_id = ?', [user.id]);
+  }
+  return users;
+};
+```
+
+## API Design Kuralları
+
+### REST API Standards
+
+```javascript
+// ✅ DOGRU: RESTful endpoints
+GET    /api/v1/users              // List users
+GET    /api/v1/users/:id          // Get user
+POST   /api/v1/users              // Create user
+PUT    /api/v1/users/:id          // Update user
+PATCH  /api/v1/users/:id          // Partial update
+DELETE /api/v1/users/:id          // Delete user
+
+// Collection endpoints
+GET    /api/v1/users/:id/orders   // Get user's orders
+POST   /api/v1/users/:id/orders   // Create order for user
+```
+
+### Response Format
+
+```javascript
+// ✅ DOGRU: Consistent response format
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com"
+  },
+  "message": "User retrieved successfully",
+  "timestamp": "2025-07-20T10:30:00Z"
+}
+
+// Error response
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid email format",
+    "details": {
+      "field": "email",
+      "value": "invalid-email"
+    }
+  },
+  "timestamp": "2025-07-20T10:30:00Z"
+}
+```
+
+### API Versioning
+
+```javascript
+// ✅ DOGRU: URL versioning
+app.use('/api/v1', v1Routes);
+app.use('/api/v2', v2Routes);
+
+// Header versioning (alternatif)
+app.use((req, res, next) => {
+  const version = req.headers['api-version'] || 'v1';
+  req.apiVersion = version;
+  next();
+});
+```
+
+## Frontend Kuralları
+
+### Component Structure
+
+```javascript
+// ✅ DOGRU: Functional component with hooks
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import './UserProfile.scss';
+
+const UserProfile = ({ userId, onUpdate }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchUser();
+  }, [userId]);
+
+  const fetchUser = async () => {
+    try {
+      setLoading(true);
+      const response = await userService.getUser(userId);
+      setUser(response.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div className="user-profile__loading">Loading...</div>;
+  if (error) return <div className="user-profile__error">{error}</div>;
+  if (!user) return null;
+
+  return (
+    <div className="user-profile">
+      <div className="user-profile__header">
+        <h2 className="user-profile__name">{user.name}</h2>
+        <p className="user-profile__email">{user.email}</p>
+      </div>
+    </div>
+  );
+};
+
+UserProfile.propTypes = {
+  userId: PropTypes.string.isRequired,
+  onUpdate: PropTypes.func
+};
+
+UserProfile.defaultProps = {
+  onUpdate: () => {}
+};
+
+export default UserProfile;
+```
+
+### State Management
+
+```javascript
+// ✅ DOGRU: Zustand store
+import { create } from 'zustand';
+
+const useUserStore = create((set, get) => ({
+  users: [],
+  loading: false,
+  error: null,
+  
+  fetchUsers: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await userService.getUsers();
+      set({ users: response.data, loading: false });
+    } catch (error) {
+      set({ error: error.message, loading: false });
+    }
+  },
+  
+  addUser: (user) => set((state) => ({
+    users: [...state.users, user]
+  })),
+  
+  updateUser: (id, updates) => set((state) => ({
+    users: state.users.map(user => 
+      user.id === id ? { ...user, ...updates } : user
+    )
+  })),
+  
+  removeUser: (id) => set((state) => ({
+    users: state.users.filter(user => user.id !== id)
+  }))
+}));
+```
+
+## Mobile Development Kuralları (React Native)
+
+### Project Structure
+
+```
+src/
+├── components/           # Reusable components
+│   ├── common/          # Common UI components
+│   └── forms/           # Form components
+├── screens/             # Screen components
+├── navigation/          # Navigation configuration
+├── services/            # API services
+├── store/              # State management
+├── utils/              # Utility functions
+├── constants/          # App constants
+├── assets/             # Images, fonts, etc.
+└── hooks/              # Custom hooks
+```
+
+### Platform-Specific Code
+
+```javascript
+import { Platform } from 'react-native';
+
+// ✅ DOGRU: Platform specific styling
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    ...Platform.select({
+      ios: {
+        paddingTop: 44, // Status bar height
+      },
+      android: {
+        paddingTop: 24,
+      },
+    }),
+  },
+});
+
+// ✅ DOGRU: Platform specific imports
+const Icon = Platform.select({
+  ios: () => require('./icons/ios/icon.png'),
+  android: () => require('./icons/android/icon.png'),
+})();
+```
+
+## DevOps ve Infrastructure
+
+### Docker Configuration
+
+```dockerfile
+# ✅ DOGRU: Multi-stage Dockerfile
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM node:18-alpine AS runtime
+
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+
+EXPOSE 3000
+
+USER node
+
+CMD ["npm", "start"]
+```
+
+### Environment Variables
+
+```bash
+# .env.example
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+REDIS_URL=redis://localhost:6379
+
+# Authentication
+JWT_SECRET=your-super-secret-jwt-key
+JWT_EXPIRES_IN=7d
+
+# External APIs
+STRIPE_SECRET_KEY=sk_test_...
+SENDGRID_API_KEY=SG...
+
+# App Configuration
+NODE_ENV=development
+PORT=3000
+API_VERSION=v1
+
+# Monitoring
+SENTRY_DSN=https://...
+```
+
+## Monitoring ve Alerting
+
+### Health Checks
+
+```javascript
+// ✅ DOGRU: Health check endpoint
+app.get('/health', async (req, res) => {
+  const checks = {
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    status: 'OK',
+    services: {}
+  };
+
+  try {
+    // Database check
+    await db.query('SELECT 1');
+    checks.services.database = 'OK';
+  } catch (error) {
+    checks.services.database = 'ERROR';
+    checks.status = 'ERROR';
+  }
+
+  try {
+    // Redis check
+    await redis.ping();
+    checks.services.redis = 'OK';
+  } catch (error) {
+    checks.services.redis = 'ERROR';
+    checks.status = 'ERROR';
+  }
+
+  const statusCode = checks.status === 'OK' ? 200 : 503;
+  res.status(statusCode).json(checks);
+});
+```
+
+### Metrics Collection
+
+```javascript
+// ✅ DOGRU: Custom metrics
+const promClient = require('prom-client');
+
+const httpRequestDuration = new promClient.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status_code']
+});
+
+const requestCounter = new promClient.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code']
+});
+```
+
+## Son Kontrol Listesi
+
+### Pre-Deployment Checklist
+
+- [ ] Tüm testler geçiyor (%80+ coverage)
+- [ ] Code review tamamlandı
+- [ ] Security scan yapıldı
+- [ ] Performance testleri geçti
+- [ ] Database migration testleri yapıldı
+- [ ] Environment variables kontrolü
+- [ ] Rollback planı hazır
+- [ ] Monitoring ve alerting aktif
+
+### Definition of Done
+
+Bir task'ın tamamlanmış sayılması için:
+
+- [ ] Kod yazıldı ve test edildi
+- [ ] Unit testler yazıldı (%80+ coverage)
+- [ ] Integration testler geçiyor
+- [ ] Code review yapıldı
+- [ ] Dokümantasyon güncellendi
+- [ ] UI/UX review tamamlandı
+- [ ] Security review yapıldı
+- [ ] Performance kriterleri karşılanıyor
+- [ ] Staging ortamında test edildi
+- [ ] Product Owner onayı alındı
+
+Bu kurallar proje kalitesini ve sürdürülebilirliğini sağlamak için kritiktir. Herhangi bir sorunuz varsa lütfen teknik liderle iletişime geçin.
