@@ -85,17 +85,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
 }));
 
 // Health check endpoint
-app.get('/health', (_req, res) => {
-  const health = {
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    cpu: process.cpuUsage(),
-    version: process.env.npm_package_version || '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
-  };
-  res.status(200).json(health);
+app.get('/api/v1/health', (req, res) => {
+  res.json({ success: true, message: 'healthy' });
 });
 
 // API Routes
