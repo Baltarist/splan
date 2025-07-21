@@ -8,17 +8,17 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Generate Prisma client
-RUN npx prisma generate
+# Install ALL dependencies (including devDependencies)
+RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application (needs tsc from devDependencies)
 RUN npm run build
+
+# Generate Prisma client (after build, in case schema uses built code)
+RUN npx prisma generate
 
 # Production stage
 FROM node:18-alpine AS production
@@ -30,10 +30,12 @@ RUN adduser -S nodejs -u 1001
 # Set working directory
 WORKDIR /app
 
-# Copy built application
+# Copy only production dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy built application and prisma client
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
 
 # Switch to non-root user
