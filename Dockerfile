@@ -38,14 +38,20 @@ RUN npm ci --only=production
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
 
-# Install OpenSSL 1.1 compatibility for Prisma
-RUN apk add --no-cache openssl1.1-compat
+# Install OpenSSL 1.1 if available, otherwise fallback to default openssl
+RUN apk add --no-cache openssl1.1 || apk add --no-cache openssl
+
+# Set NODE_ENV for production best practices
+ENV NODE_ENV=production
 
 # Generate Prisma client in production image
 RUN npx prisma generate
 
 # Create logs directory and set permissions
 RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app/logs
+
+# Add a shell for debugging (optional, can be removed in strict prod)
+SHELL ["/bin/sh", "-c"]
 
 # Switch to non-root user
 USER nodejs
@@ -59,3 +65,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Start the application
 CMD ["npm", "start"] 
+
+# If Prisma still fails, check Alpine version and consider using debian-based node image for full OpenSSL 1.1 support 
