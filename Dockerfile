@@ -38,6 +38,9 @@ RUN npm ci --only=production
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
 
+# Generate Prisma client in production image
+RUN npx prisma generate
+
 # Create logs directory and set permissions
 RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app/logs
 
