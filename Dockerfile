@@ -38,6 +38,9 @@ RUN npm ci --only=production
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
 
+# Install OpenSSL 1.1 compatibility for Prisma
+RUN apk add --no-cache openssl1.1-compat
+
 # Generate Prisma client in production image
 RUN npx prisma generate
 
