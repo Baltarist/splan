@@ -174,8 +174,8 @@ const dataExportImportSlice = createSlice({
   name: 'dataExportImport',
   initialState,
   reducers: {
-    clearDataExportImportError: (state, action: PayloadAction<keyof DataExportImportState>) => {
-      state[action.payload].error = null;
+    clearDataExportImportError: (state, _action: PayloadAction<keyof DataExportImportState>) => {
+      state[_action.payload].error = null;
     },
     clearAllDataExportImportErrors: (state) => {
       Object.keys(state).forEach((key) => {
@@ -186,22 +186,22 @@ const dataExportImportSlice = createSlice({
     clearExportBlob: (state) => {
       state.exportData.blob = null;
     },
-    addExport: (state, action: PayloadAction<DataExport>) => {
-      state.exports.data.unshift(action.payload);
+    addExport: (state, _action: PayloadAction<DataExport>) => {
+      state.exports.data.unshift(_action.payload);
     },
-    addImport: (state, action: PayloadAction<DataImport>) => {
-      state.imports.data.unshift(action.payload);
+    addImport: (state, _action: PayloadAction<DataImport>) => {
+      state.imports.data.unshift(_action.payload);
     },
-    addBackup: (state, action: PayloadAction<DataBackup>) => {
-      state.backups.data.unshift(action.payload);
+    addBackup: (state, _action: PayloadAction<DataBackup>) => {
+      state.backups.data.unshift(_action.payload);
     },
-    addRestore: (state, action: PayloadAction<DataRestore>) => {
-      state.restores.data.unshift(action.payload);
+    addRestore: (state, _action: PayloadAction<DataRestore>) => {
+      state.restores.data.unshift(_action.payload);
     },
-    updateBackup: (state, action: PayloadAction<DataBackup>) => {
-      const index = state.backups.data.findIndex(b => b.id === action.payload.id);
+    updateBackup: (state, _action: PayloadAction<DataBackup>) => {
+      const index = state.backups.data.findIndex(b => b.id === _action.payload.id);
       if (index !== -1) {
-        state.backups.data[index] = action.payload;
+        state.backups.data[index] = _action.payload;
       }
     },
   },

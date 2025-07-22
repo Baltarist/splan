@@ -11,7 +11,7 @@ const JWT_EXPIRES_IN = '7d';
 export const authController = {
   register: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { username, email, password } = req.body;
+      const { username, email, password, firstName, lastName } = req.body;
 
       // Check if user already exists
       const existingUser = await prisma.user.findFirst({
@@ -24,10 +24,7 @@ export const authController = {
       });
 
       if (existingUser) {
-        res.status(400).json({
-          success: false,
-          message: 'User with this email or username already exists'
-        });
+        res.status(400).json({ error: 'User with this email or username already exists' });
         return;
       }
 
@@ -40,12 +37,16 @@ export const authController = {
           username,
           email,
           password: hashedPassword,
+          firstName,
+          lastName
         },
         select: {
           id: true,
           username: true,
           email: true,
           createdAt: true,
+          firstName: true,
+          lastName: true
         }
       });
 
@@ -57,12 +58,9 @@ export const authController = {
       );
 
       res.status(201).json({
-        success: true,
         message: 'User registered successfully',
-        data: {
-          user,
-          token
-        }
+        user,
+        token
       });
     } catch (error) {
       next(error);
@@ -79,10 +77,7 @@ export const authController = {
       });
 
       if (!user) {
-        res.status(401).json({
-          success: false,
-          message: 'Invalid credentials'
-        });
+        res.status(401).json({ error: 'Invalid credentials' });
         return;
       }
 
@@ -90,10 +85,7 @@ export const authController = {
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {
-        res.status(401).json({
-          success: false,
-          message: 'Invalid credentials'
-        });
+        res.status(401).json({ error: 'Invalid credentials' });
         return;
       }
 
@@ -105,16 +97,14 @@ export const authController = {
       );
 
       res.status(200).json({
-        success: true,
-        message: 'User logged in successfully',
-        data: {
-          user: {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            createdAt: user.createdAt,
-          },
-          token
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          createdAt: user.createdAt,
+          firstName: user.firstName,
+          lastName: user.lastName
         }
       });
     } catch (error) {
@@ -127,10 +117,7 @@ export const authController = {
       const { token } = req.body;
 
       if (!token) {
-        res.status(400).json({
-          success: false,
-          message: 'Token is required'
-        });
+        res.status(400).json({ error: 'Token is required' });
         return;
       }
 
@@ -145,14 +132,13 @@ export const authController = {
           username: true,
           email: true,
           createdAt: true,
+          firstName: true,
+          lastName: true
         }
       });
 
       if (!user) {
-        res.status(401).json({
-          success: false,
-          message: 'Invalid token'
-        });
+        res.status(401).json({ error: 'Invalid token' });
         return;
       }
 
@@ -164,12 +150,9 @@ export const authController = {
       );
 
       res.status(200).json({
-        success: true,
         message: 'Token refreshed successfully',
-        data: {
-          user,
-          token: newToken
-        }
+        user,
+        token: newToken
       });
     } catch (error) {
       next(error);
@@ -177,10 +160,6 @@ export const authController = {
   },
 
   logout: async (_req: Request, res: Response, _next: NextFunction): Promise<void> => {
-    // In a real app, you might want to blacklist the token
-    res.status(200).json({
-      success: true,
-      message: 'User logged out successfully'
-    });
+    res.status(200).json({ message: 'Logged out successfully' });
   },
 }; 

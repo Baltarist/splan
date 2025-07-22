@@ -160,7 +160,10 @@ process.on('SIGINT', () => {
   });
 });
 
-startServer();
+// Only start server if not in test environment
+if (require.main === module) {
+  startServer();
+}
 
 // Export app for testing
 export { app }; 

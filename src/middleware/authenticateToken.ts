@@ -20,7 +20,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'No token provided' });
+    return res.status(401).json({ error: 'Access token required' });
   }
 
   try {
@@ -32,6 +32,6 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
     };
     return next();
   } catch (error) {
-    return res.status(403).json({ success: false, message: 'Invalid token' });
+    return res.status(401).json({ error: 'Invalid token' });
   }
 }; 

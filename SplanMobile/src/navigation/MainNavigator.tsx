@@ -11,6 +11,7 @@ import TasksScreen from '@/screens/main/TasksScreen';
 import CreateTaskScreen from '@/screens/main/CreateTaskScreen';
 import AIChatScreen from '@/screens/main/AIChatScreen';
 import ProfileScreen from '@/screens/main/ProfileScreen';
+import TodoListScreen from '@/screens/main/TodoListScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -61,6 +62,11 @@ const MainNavigator = (): React.JSX.Element => {
         name="Tasks" 
         component={TasksStack}
         options={{ title: 'Görevler' }}
+      />
+      <Tab.Screen 
+        name="TodoList" 
+        component={TodoListScreen}
+        options={{ title: 'To-Do List' }}
       />
       <Tab.Screen 
         name="AIChat" 

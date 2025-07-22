@@ -150,97 +150,97 @@ const aiSlice = createSlice({
   extraReducers: (builder) => {
     // Send Chat Message
     builder
-      .addCase(sendChatMessage.pending, (state) => {
-        state.isChatLoading = true;
-        state.chatError = null;
+      .addCase(sendChatMessage.pending, (_state) => {
+        _state.isChatLoading = true;
+        _state.chatError = null;
       })
-      .addCase(sendChatMessage.fulfilled, (state, action: PayloadAction<ChatResponse>) => {
-        state.isChatLoading = false;
-        state.currentConversationId = action.payload.conversationId;
-        state.messages.push({
+      .addCase(sendChatMessage.fulfilled, (_state, action: PayloadAction<ChatResponse>) => {
+        _state.isChatLoading = false;
+        _state.currentConversationId = action.payload.conversationId;
+        _state.messages.push({
           role: 'assistant',
           content: action.payload.response
         });
       })
-      .addCase(sendChatMessage.rejected, (state, action) => {
-        state.isChatLoading = false;
-        state.chatError = action.error.message || 'Chat error occurred';
+      .addCase(sendChatMessage.rejected, (_state, action) => {
+        _state.isChatLoading = false;
+        _state.chatError = action.error.message || 'Chat error occurred';
       });
     
     // Get Goal Suggestions
     builder
-      .addCase(getGoalSuggestions.pending, (state) => {
-        state.isSuggestionsLoading = true;
-        state.suggestionsError = null;
+      .addCase(getGoalSuggestions.pending, (_state) => {
+        _state.isSuggestionsLoading = true;
+        _state.suggestionsError = null;
       })
-      .addCase(getGoalSuggestions.fulfilled, (state, action: PayloadAction<string[]>) => {
-        state.isSuggestionsLoading = false;
-        state.goalSuggestions = action.payload;
+      .addCase(getGoalSuggestions.fulfilled, (_state, action: PayloadAction<string[]>) => {
+        _state.isSuggestionsLoading = false;
+        _state.goalSuggestions = action.payload;
       })
-      .addCase(getGoalSuggestions.rejected, (state, action) => {
-        state.isSuggestionsLoading = false;
-        state.suggestionsError = action.error.message || 'Suggestions error occurred';
+      .addCase(getGoalSuggestions.rejected, (_state, action) => {
+        _state.isSuggestionsLoading = false;
+        _state.suggestionsError = action.error.message || 'Suggestions error occurred';
       });
     
     // Get Task Suggestions
     builder
-      .addCase(getTaskSuggestions.pending, (state) => {
-        state.isSuggestionsLoading = true;
-        state.suggestionsError = null;
+      .addCase(getTaskSuggestions.pending, (_state) => {
+        _state.isSuggestionsLoading = true;
+        _state.suggestionsError = null;
       })
-      .addCase(getTaskSuggestions.fulfilled, (state, action: PayloadAction<string[]>) => {
-        state.isSuggestionsLoading = false;
-        state.taskSuggestions = action.payload;
+      .addCase(getTaskSuggestions.fulfilled, (_state, action: PayloadAction<string[]>) => {
+        _state.isSuggestionsLoading = false;
+        _state.taskSuggestions = action.payload;
       })
-      .addCase(getTaskSuggestions.rejected, (state, action) => {
-        state.isSuggestionsLoading = false;
-        state.suggestionsError = action.error.message || 'Suggestions error occurred';
+      .addCase(getTaskSuggestions.rejected, (_state, action) => {
+        _state.isSuggestionsLoading = false;
+        _state.suggestionsError = action.error.message || 'Suggestions error occurred';
       });
     
     // Regenerate Goal Scope
     builder
-      .addCase(regenerateGoalScope.pending, (state) => {
-        state.isScopeLoading = true;
-        state.scopeError = null;
+      .addCase(regenerateGoalScope.pending, (_state) => {
+        _state.isScopeLoading = true;
+        _state.scopeError = null;
       })
-      .addCase(regenerateGoalScope.fulfilled, (state, action: PayloadAction<string>) => {
-        state.isScopeLoading = false;
-        state.goalScope = action.payload;
+      .addCase(regenerateGoalScope.fulfilled, (_state, action: PayloadAction<string>) => {
+        _state.isScopeLoading = false;
+        _state.goalScope = action.payload;
       })
-      .addCase(regenerateGoalScope.rejected, (state, action) => {
-        state.isScopeLoading = false;
-        state.scopeError = action.error.message || 'Scope regeneration error occurred';
+      .addCase(regenerateGoalScope.rejected, (_state, action) => {
+        _state.isScopeLoading = false;
+        _state.scopeError = action.error.message || 'Scope regeneration error occurred';
       });
     
     // Get Conversation History
     builder
-      .addCase(getConversationHistory.pending, (state) => {
-        state.isChatLoading = true;
-        state.chatError = null;
+      .addCase(getConversationHistory.pending, (_state) => {
+        _state.isChatLoading = true;
+        _state.chatError = null;
       })
-      .addCase(getConversationHistory.fulfilled, (state, action: PayloadAction<{ conversationId: string; messages: AIMessage[] }>) => {
-        state.isChatLoading = false;
-        state.currentConversationId = action.payload.conversationId;
-        state.messages = action.payload.messages;
+      .addCase(getConversationHistory.fulfilled, (_state, action: PayloadAction<{ conversationId: string; messages: AIMessage[] }>) => {
+        _state.isChatLoading = false;
+        _state.currentConversationId = action.payload.conversationId;
+        _state.messages = action.payload.messages;
       })
-      .addCase(getConversationHistory.rejected, (state, action) => {
-        state.isChatLoading = false;
-        state.chatError = action.error.message || 'Conversation history error occurred';
+      .addCase(getConversationHistory.rejected, (_state, action) => {
+        _state.isChatLoading = false;
+        _state.chatError = action.error.message || 'Conversation history error occurred';
       });
     
     // Get User Conversations
     builder
-      .addCase(getUserConversations.pending, (state) => {
-        state.isConversationsLoading = true;
-        state.conversationsError = null;
+      .addCase(getUserConversations.pending, (_state) => {
+        _state.isConversationsLoading = true;
+        _state.conversationsError = null;
       })
-      .addCase(getUserConversations.fulfilled, (state, action: PayloadAction<AIConversation[]>) => {
-        state.isConversationsLoading = false;
-        state.conversations = action.payload;
+      .addCase(getUserConversations.fulfilled, (_state, action: PayloadAction<AIConversation[]>) => {
+        _state.isConversationsLoading = false;
+        _state.conversations = action.payload;
       })
-      .addCase(getUserConversations.rejected, (state, action) => {
-        state.isConversationsLoading = false;
-        state.conversationsError = action.error.message || 'Conversations error occurred';
+      .addCase(getUserConversations.rejected, (_state, action) => {
+        _state.isConversationsLoading = false;
+        _state.conversationsError = action.error.message || 'Conversations error occurred';
       });
   },
 });
@@ -269,4 +269,5 @@ export const selectIsConversationsLoading = (state: { ai: AIState }) => state.ai
 export const selectGoalScope = (state: { ai: AIState }) => state.ai.goalScope;
 export const selectIsScopeLoading = (state: { ai: AIState }) => state.ai.isScopeLoading;
 
+export { initialState };
 export default aiSlice.reducer; 

@@ -3,6 +3,7 @@ import { authController } from '../controllers/authController';
 import { authenticateToken } from '../middleware/authenticateToken';
 import { registerSchema, loginSchema, refreshTokenSchema } from '../schemas/authSchemas';
 import { validateRequest } from '../middleware/validateRequest';
+import { userController } from '../controllers/userController';
 
 const router = Router();
 
@@ -17,5 +18,10 @@ router.post('/refresh', validateRequest(refreshTokenSchema), authController.refr
 
 // POST /api/v1/auth/logout
 router.post('/logout', authenticateToken, authController.logout);
+
+// GET /api/v1/auth/profile (proxy)
+router.get('/profile', authenticateToken, userController.getProfile);
+// PUT /api/v1/auth/profile (proxy)
+router.put('/profile', authenticateToken, userController.updateProfile);
 
 export default router; 

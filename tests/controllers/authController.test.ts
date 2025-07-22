@@ -9,7 +9,13 @@ describe('Auth Controller', () => {
   let testUser: any;
   let authToken: string;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
+    // Cleanup users before each test
+    await prisma.user.deleteMany({
+      where: {
+        email: { in: ['auth-test@example.com', 'newuser@example.com'] }
+      }
+    });
     // Create test user with unique credentials
     const hashedPassword = await bcrypt.hash('testpassword123', 10);
     testUser = await prisma.user.create({
@@ -21,6 +27,14 @@ describe('Auth Controller', () => {
         lastName: 'User',
       },
     });
+    // Login to get auth token
+    const loginResponse = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'auth-test@example.com',
+        password: 'testpassword123',
+      });
+    authToken = loginResponse.body.token;
   });
 
   afterAll(async () => {

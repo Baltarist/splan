@@ -5,8 +5,6 @@ import {
   OfflineData,
   SyncStatus,
   SyncQueueItem,
-  SyncResult,
-  AddToSyncQueueRequest,
   UpdateOfflineDataRequest
 } from '../../services/offlineSyncService';
 

@@ -12,14 +12,15 @@ interface AuthenticatedRequest extends Request {
 export const goalController = {
   createGoal: async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { title, description, priority, targetDate } = req.body;
+      const { title, description, priority, targetDate, category, estimatedEffort } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
-        res.status(401).json({
-          success: false,
-          message: 'User not authenticated'
-        });
+        res.status(401).json({ error: 'Access token required' });
+        return;
+      }
+      if (!title || title.trim() === '') {
+        res.status(400).json({ error: 'Title is required' });
         return;
       }
 
@@ -31,13 +32,14 @@ export const goalController = {
           targetDate: targetDate ? new Date(targetDate) : null,
           status: 'ACTIVE',
           userId,
+          category: category || 'WORK',
+          estimatedEffort: estimatedEffort || null
         }
       });
 
       res.status(201).json({
-        success: true,
         message: 'Goal created successfully',
-        data: goal
+        goal
       });
     } catch (error) {
       next(error);
@@ -49,10 +51,7 @@ export const goalController = {
       const userId = req.user?.id;
 
       if (!userId) {
-        res.status(401).json({
-          success: false,
-          message: 'User not authenticated'
-        });
+        res.status(401).json({ error: 'Access token required' });
         return;
       }
 
@@ -61,11 +60,7 @@ export const goalController = {
         orderBy: { createdAt: 'desc' }
       });
 
-      res.status(200).json({
-        success: true,
-        message: 'Goals retrieved successfully',
-        data: goals
-      });
+      res.status(200).json({ goals });
     } catch (error) {
       next(error);
     }
@@ -77,10 +72,7 @@ export const goalController = {
       const userId = req.user?.id;
 
       if (!userId || !id) {
-        res.status(401).json({
-          success: false,
-          message: 'User not authenticated or invalid goal ID'
-        });
+        res.status(401).json({ error: 'Access token required' });
         return;
       }
 
@@ -92,18 +84,11 @@ export const goalController = {
       });
 
       if (!goal) {
-        res.status(404).json({
-          success: false,
-          message: 'Goal not found'
-        });
+        res.status(404).json({ error: 'Goal not found' });
         return;
       }
 
-      res.status(200).json({
-        success: true,
-        message: 'Goal retrieved successfully',
-        data: goal
-      });
+      res.status(200).json({ goal });
     } catch (error) {
       next(error);
     }
@@ -112,14 +97,11 @@ export const goalController = {
   updateGoal: async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
-      const { title, description, priority, targetDate, status } = req.body;
+      const { title, description, priority, targetDate, status, category, estimatedEffort } = req.body;
       const userId = req.user?.id;
 
       if (!userId || !id) {
-        res.status(401).json({
-          success: false,
-          message: 'User not authenticated or invalid goal ID'
-        });
+        res.status(401).json({ error: 'Access token required' });
         return;
       }
 
@@ -131,10 +113,7 @@ export const goalController = {
       });
 
       if (!goal) {
-        res.status(404).json({
-          success: false,
-          message: 'Goal not found'
-        });
+        res.status(404).json({ error: 'Goal not found' });
         return;
       }
 
@@ -146,13 +125,14 @@ export const goalController = {
           priority,
           targetDate: targetDate ? new Date(targetDate) : null,
           status,
+          category,
+          estimatedEffort
         }
       });
 
       res.status(200).json({
-        success: true,
         message: 'Goal updated successfully',
-        data: updatedGoal
+        goal: updatedGoal
       });
     } catch (error) {
       next(error);
@@ -165,10 +145,7 @@ export const goalController = {
       const userId = req.user?.id;
 
       if (!userId || !id) {
-        res.status(401).json({
-          success: false,
-          message: 'User not authenticated or invalid goal ID'
-        });
+        res.status(401).json({ error: 'Access token required' });
         return;
       }
 
@@ -180,10 +157,7 @@ export const goalController = {
       });
 
       if (!goal) {
-        res.status(404).json({
-          success: false,
-          message: 'Goal not found'
-        });
+        res.status(404).json({ error: 'Goal not found' });
         return;
       }
 
@@ -191,10 +165,7 @@ export const goalController = {
         where: { id }
       });
 
-      res.status(200).json({
-        success: true,
-        message: 'Goal deleted successfully'
-      });
+      res.status(200).json({ message: 'Goal deleted successfully' });
     } catch (error) {
       next(error);
     }

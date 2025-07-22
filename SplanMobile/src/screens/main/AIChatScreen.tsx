@@ -132,7 +132,22 @@ const AIChatScreen: React.FC = () => {
       <FlatList
         ref={flatListRef}
         data={messages}
-        renderItem={renderMessage}
+        renderItem={({ item, index }) => (
+          <View style={[styles.messageContainer, item.role === 'user' ? styles.userMessage : styles.aiMessage]}>
+            <View style={[styles.messageBubble, item.role === 'user' ? styles.userBubble : styles.aiBubble]}>
+              <Text style={[styles.messageText, item.role === 'user' ? styles.userText : styles.aiText]}>
+                {item.content}
+              </Text>
+            </View>
+            <View style={styles.messageInfo}>
+              <Text style={styles.messageTime}>
+                {new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+              {item.role === 'user' && <Ionicons name="person" size={16} color="#666" />}
+              {item.role !== 'user' && <Ionicons name="chatbubble-ellipses" size={16} color="#007AFF" />}
+            </View>
+          </View>
+        )}
         keyExtractor={(item, index) => index.toString()}
         style={styles.messagesList}
         contentContainerStyle={styles.messagesContent}
